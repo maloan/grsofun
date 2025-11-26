@@ -12,7 +12,6 @@
 # -----------------------------------------------------------
 # Global rsofun simulation with grsofun: WATCH-WFDEI + MODIS
 # -----------------------------------------------------------
-
 library(BayesianTools)
 library(ggplot2)
 library(dplyr)
@@ -28,14 +27,12 @@ library(terra)
 
 message("Starting program..")
 
-
 # Load all R scripts from the R/ directory
 source_files <- list.files(here::here("R/"), pattern = "*.R$")
 purrr::walk(paste0(here::here("R/"), source_files), source)
+ncores <- max(as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", 1)) - 1, 1)
+ncores <- min(ncores, 4)   # or 8, depending on memory
 
-ncores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = "1"))
-ncores <- max(ncores - 1, 1)
-#ncores <- 1
 # -----------------------------------------------------------
 # Model and I/O configuration
 # -----------------------------------------------------------
@@ -60,8 +57,8 @@ settings <- list(
   dir_out = "/storage/research/giub_geco/data_2/scratch/akurth/grsofun_output/test_1/",
   dir_out_nc = "/storage/research/giub_geco/data_2/scratch/akurth/grsofun_output/test_1/",
   dir_out_drivers = "/storage/research/giub_geco/data_2/scratch/akurth/grsofun_input/test_1",
-  save = list(gpp = "mon"),
-  overwrite = FALSE,
+  save = list(aet = "mon"),
+  overwrite = TRUE,
 
   ### tidy model input config:
   grid = list(
@@ -107,7 +104,6 @@ settings <- list(
   dir_out_tidy_elv = "/storage/research/giub_geco/data_2/watch_wfdei/tidy"
 )
 
-
 # -----------------------------------------------------------
 # Model parameters
 # -----------------------------------------------------------
@@ -144,10 +140,9 @@ par_PM <- list(
   kphio_par_a        = -0.00100,
   kphio_par_b        = 24.02663,
   soilm_thetastar    = 145.72290,
+  #err_gpp            = 2.31415,
+  #err_le             = 24.76610,
   gw_calib           = 0.67554,
-  err_gpp            = 2.31415,
-  err_le             = 24.76610,
-  soilm_betao        = 1.169702e-04,
   beta_unitcostratio = 146.0,
   rd_to_vcmax        = 0.014,
   tau_acclim         = 20.0,
@@ -159,10 +154,9 @@ par_PM_S0 <- list(
   kphio_par_a        = -0.00099,
   kphio_par_b        = 24.06332,
   soilm_thetastar    = 398.99790,
+  #err_gpp            = 2.31061,
+  #err_le             = 24.25638,
   gw_calib           = 0.74075,
-  err_gpp            = 2.31061,
-  err_le             = 24.25638,
-  soilm_betao        = 1.169702e-04,
   beta_unitcostratio = 146.0,
   rd_to_vcmax        = 0.014,
   tau_acclim         = 20.0,
@@ -253,10 +247,10 @@ print(settings)
 # Preprocess tidy input data from NetCDF
 # -----------------------------------------------------------
 
-#tictoc::tic("Tidying input")
-#tidy_out <- grsofun_tidy(settings)
-#tictoc::toc()
-#gc()
+# tictoc::tic("Tidying input")
+# tidy_out <- grsofun_tidy(settings)
+# tictoc::toc()
+# gc()
 
 # -----------------------------------------------------------
 # Run grsofun model simulation
@@ -284,20 +278,20 @@ timestamp <- format(Sys.time(), "%Y%m%d_%H%M")
 # save as rds
 saveRDS(df, file = file.path(
   settings$dir_out,
-  paste0("final_gpp_df_", settings$fileprefix, "_", timestamp, ".rds")
+  paste0("final_aet_df_", settings$fileprefix, "_", timestamp, ".rds")
 ))
 
 # save as csv
 write.csv(df,
           file = file.path(
             settings$dir_out,
-            paste0("final_gpp_df_", settings$fileprefix, "_", timestamp, ".csv")
+            paste0("final_aet_df_", settings$fileprefix, "_", timestamp, ".csv")
           ),
           row.names = FALSE)
 
 
 # -----------------------------------------------------------
-# Generate example GPP map plots for Jan & Jul and save
+# Generate example AET map plots for Jan & Jul and save
 # -----------------------------------------------------------
 
 coast <- rnaturalearth::ne_coastline(scale = 110, returnclass = "sf")
@@ -306,7 +300,7 @@ coast <- rnaturalearth::ne_coastline(scale = 110, returnclass = "sf")
 gg1 <- df |>
   filter(month == 1) |>
   ggplot() +
-  geom_tile(aes(x = lon, y = lat, fill = gpp), show.legend = TRUE) +
+  geom_tile(aes(x = lon, y = lat, fill = aet), show.legend = TRUE) +
   geom_sf(data = coast,
           colour = "black",
           linewidth = 0.3) +
@@ -321,7 +315,7 @@ gg1 <- df |>
 gg2 <- df |>
   filter(month == 7) |>
   ggplot() +
-  geom_tile(aes(x = lon, y = lat, fill = gpp), show.legend = TRUE) +
+  geom_tile(aes(x = lon, y = lat, fill = aet), show.legend = TRUE) +
   geom_sf(data = coast,
           colour = "black",
           linewidth = 0.3) +
@@ -348,11 +342,11 @@ year_tag <- if (!is.null(settings$year_start)) {
   "unknown_year"
 }
 
-fig_dir <- "~/data/figures"
+fig_dir <- dir_out
 dir.create(fig_dir, recursive = TRUE, showWarnings = FALSE)
 fig_file <- file.path(fig_dir,
                       paste0(
-                        "gpp_",
+                       "aet_",
                         settings$fileprefix,
                         "_",
                         year_tag,
