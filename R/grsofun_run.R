@@ -231,11 +231,19 @@ grsofun_run_byLON <- function(LON_string, par, settings){
               dplyr::rename(canopy_height = Band1),
             dplyr::join_by(lon, lat)) |>
           dplyr::mutate(
+            canopy_height = ifelse(
+              is.na(canopy_height) | canopy_height < 0.05,
+              -1,                      # sentinel for desert / barren
+              canopy_height
+            ),
             reference_height = canopy_height
           )
       } else {
         df <- df |>
-          dplyr::mutate(reference_height = NA, canopy_height = NA)
+          dplyr::mutate(
+            canopy_height   = -1,
+            reference_height = -1
+          )
       }
       rm(df_canopy_height)
 
