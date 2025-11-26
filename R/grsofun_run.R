@@ -17,21 +17,24 @@ grsofun_run <- function(par, settings){
   list_of_LON_str <- map2tidy::get_file_suffix(
     ilon = df_lon_index$lon_index,
     df_lon_index = df_lon_index
-    )
+  )
 
   if (settings$nnodes == 1){
     if (settings$ncores_max == 1){
       # Do not parallelize
       # out <- dplyr::tibble(ilon = 292) |>
-      out <- dplyr::tibble(LON_str = list_of_LON_str) |>
-          dplyr::mutate(out = purrr::map(
-            LON_str,
-            ~grsofun_run_byLON(
-              .,
-              par,
-              settings
-            ))
-          )
+      out <- dplyr::tibble(ilon = seq_along(list_of_LON_str),
+                           LON_str = list_of_LON_str)
+
+      out$out <- purrr::map(
+        out$LON_str,
+        function(LON) {
+          res <- grsofun_run_byLON(LON, par, settings)
+          gc()
+          return(res)
+        }
+      )
+
 
     } else {
       # Parallelise by longitudinal bands on multiple cores of a single node
@@ -45,33 +48,36 @@ grsofun_run <- function(par, settings){
 
       # parallelize job
       # set up the cluster, sending required objects to each core
-      cl <- multidplyr::new_cluster(ncores) |>
-        multidplyr::cluster_library(c("map2tidy",
-                                      "dplyr",
-                                      "purrr",
-                                      "tidyr",
-                                      "readr",
-                                      "grsofun"
-        )) |>
-        multidplyr::cluster_assign(
-          grsofun_run_byLON        = grsofun_run_byLON,   # make the function known for each core
-          read_forcing_byvar_byLON = read_forcing_byvar_byLON,
-          par                      = par,
-          settings                 = settings
+      cluster_export_functions <- function(cl){
+        multidplyr::cluster_assign(cl,
+                                   grsofun_run_byLON        = grsofun_run_byLON,
+                                   read_forcing_byvar_byLON = read_forcing_byvar_byLON,
+                                   par                      = par,
+                                   settings                 = settings
         )
+      }
+
+      cl <- multidplyr::new_cluster(ncores) |>
+        multidplyr::cluster_library(c("map2tidy","dplyr","purrr","tidyr","readr","grsofun"))
+
+      cluster_export_functions(cl)
 
       # distribute computation across the cores, calculating for all longitudinal
       # indices of this chunk
-      out <- dplyr::tibble(LON_str = list_of_LON_str) |>
+      out <- dplyr::tibble(ilon = seq_along(list_of_LON_str),
+                           LON_str = list_of_LON_str) |>
         multidplyr::partition(cl) |>
         dplyr::mutate(out = purrr::map(
           LON_str,
-          ~grsofun_run_byLON(
-            .,
-            par,
-            settings
-          ))
-        )
+          function(LON) {
+            res <- grsofun_run_byLON(LON, par, settings)
+            gc()
+            res
+          }
+        )) |>
+        dplyr::collect()
+
+      gc()
 
     }
 
@@ -148,7 +154,6 @@ grsofun_run <- function(par, settings){
 #' @export
 grsofun_run_byLON <- function(LON_string, par, settings){
   # e.g LON_string = "LON_+046.750"
-
   # for DE-Tha (DE-Tha  lon = 13.6, lat = 51.0, elv = 380 m),
   #            use (lon = 13.75, lat = 50.75, sitename = grid_LON_+013.750_LAT_+050.750)
 
@@ -167,7 +172,9 @@ grsofun_run_byLON <- function(LON_string, par, settings){
       }
 
       df <- readr::read_rds(filnam) |>
-        dplyr::rename(elv = elevation)
+        dplyr::rename(elv = elevation) |>
+        # remove full-ocean and partial-ocean pixels
+        dplyr::filter(!is.na(elv), elv >= 0)
 
       # # get elevation
       # dplyr::left_join(
@@ -196,13 +203,14 @@ grsofun_run_byLON <- function(LON_string, par, settings){
                 nm <- if ("cwdx80_forcing" %in% names(x)) "cwdx80_forcing" else "whc_2m"
                 dplyr::rename(
                   x, whc = !!rlang::sym(nm))
-                })(),
+              })(),
             dplyr::join_by(lon, lat)
           )
       } else {
         df <- df |>
           dplyr::mutate(whc = 200)
       }
+      rm(df_whc)
 
       df <- df |>
         dplyr::mutate(whc = ifelse(is.na(whc), 200, whc))
@@ -224,11 +232,11 @@ grsofun_run_byLON <- function(LON_string, par, settings){
             dplyr::join_by(lon, lat)) |>
           dplyr::mutate(
             reference_height = canopy_height
-            )
-        } else {
-          df <- df |>
-            dplyr::mutate(reference_height = NA, canopy_height = NA)
-          }
+          )
+      } else {
+        df <- df |>
+          dplyr::mutate(reference_height = NA, canopy_height = NA)
+      }
       rm(df_canopy_height)
 
       # Read tidy climate forcing data by longitudinal band and convert units -
@@ -256,7 +264,7 @@ grsofun_run_byLON <- function(LON_string, par, settings){
                                        by = c("lon", "lat", "datetime")) |>
           dplyr::mutate(
             datetime = as.Date(datetime),
-            netrad = ssr + str
+            netrad = ((ssr/ 86400)  + (str/ 86400))   # J/m2 -> W/m2
           ) |>
           dplyr::select(lon, lat, datetime, netrad)
         rm(df_ssr, df_str); gc()
@@ -281,7 +289,6 @@ grsofun_run_byLON <- function(LON_string, par, settings){
           dplyr::rename(vwind = Wind) |>
 
           # convert units and rename
-          #dplyr::rowwise() |>
           dplyr::mutate(
             Tair = Tair - 273.15,  # K -> deg C
             ppfd = SWdown * kfFEC * 1.0e-6,  # W m-2 -> mol m-2 s-1
@@ -316,9 +323,9 @@ grsofun_run_byLON <- function(LON_string, par, settings){
             snow = Snowf,
             co2,
             patm = PSurf,
-            vwind,
             tmin = Tair,
-            tmax = Tair
+            tmax = Tair,
+            vwind
           ) |>
 
           dplyr::group_by(lon, lat) |>
@@ -408,17 +415,16 @@ grsofun_run_byLON <- function(LON_string, par, settings){
 
           # combine to capture all gridcells of the climate forcing
           # if fapar forcing is missing, set fapar = 0
-          df_fapar <- df_fapar |>
-            tidyr::unnest(data)
           df_forcing <- df_climate |>
             tidyr::unnest(data) |>
-            dplyr::left_join(df_fapar,
+            dplyr::left_join(
+              (df_fapar |>
+                tidyr::unnest(data)),
               by = c("lon", "lat", "date")
             ) |>
             dplyr::mutate(fapar = ifelse(is.na(fapar), 0, fapar)) |>
             dplyr::group_by(lon, lat) |>
             tidyr::nest()
-
         } else {
           # fapar not available - set to zero
           df_forcing <- df_climate |>
@@ -436,6 +442,16 @@ grsofun_run_byLON <- function(LON_string, par, settings){
             df_forcing |>
               dplyr::rename(forcing = data),
             dplyr::join_by(lon, lat)
+          ) |>
+
+          # remove leap days from forcing early
+          dplyr::mutate(
+            forcing = purrr::map(
+              forcing, ~ dplyr::filter(.,
+                                       !(lubridate::month(date) == 2 & lubridate::day(date) == 29)
+              )
+            ),
+            forcing_acclim = forcing
           ) |>
 
           # construct site name from longitude and latitude indices
@@ -461,21 +477,16 @@ grsofun_run_byLON <- function(LON_string, par, settings){
           ) |>
 
           # group simulation parameters
-          tidyr::nest(
-            params_siml = c(
-              spinup,
-              spinupyears,
-              recycle,
-              outdt,
-              ltre,
-              ltne,
-              ltrd,
-              ltnd,
-              lgr3,
-              lgn3,
-              lgr4
-            )
+          dplyr::mutate(
+            use_gs     = settings$params_siml$use_gs,
+            use_phydro = settings$params_siml$use_phydro,
+            use_pml    = settings$params_siml$use_pml
           ) |>
+          tidyr::nest(params_siml = c(
+            spinup, spinupyears, recycle, outdt, ltre, ltne, ltrd, ltnd,
+            lgr3, lgn3, lgr4,
+            use_gs, use_phydro, use_pml
+          )) |>
 
           # group site meta info
           tidyr::nest(
@@ -483,7 +494,9 @@ grsofun_run_byLON <- function(LON_string, par, settings){
               lon,
               lat,
               elv,
-              whc
+              whc,
+              canopy_height,
+              reference_height
             )
           ) |>
 
@@ -510,16 +523,13 @@ grsofun_run_byLON <- function(LON_string, par, settings){
 
     # run model
     out <- rsofun::runread_pmodel_f(
-      # drivers = df,
-      # Remove a day in the leap years...     # TODO: is this really needed for rsofun?
-      drivers = mutate(df,
-                       forcing = purrr::map(forcing,
-                                            ~dplyr::filter(., !(format(date, "%m-%d") == "02-29")))),
+      drivers = df,
       par = par
     )
 
     message(paste("Writing file", filnam_output, "..."))
     readr::write_rds(out, file = filnam_output)
+    rm(out)
 
   } else {
 
@@ -538,7 +548,7 @@ read_forcing_byvar_byLON <- function(var, LON_string, settings){
       stop(paste("File does not exist:", filnam))
     }
     df <- readr::read_rds(filnam) |>
-    tidyr::unnest(data)
+      tidyr::unnest(data)
   }
 
   return(df)
