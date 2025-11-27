@@ -34,7 +34,7 @@ grsofun_tidy <- function(settings, ...){
   res_whc <- if (!is.na(settings$file_in_whc) && file.exists(settings$file_in_whc)) {
     map2tidy(
       nclist = settings$file_in_whc,
-      varnam = "cwdx80_forcing",
+      varnam = "whc_2m", #"cwdx80_forcing",
       lonnam = "lon",
       latnam = "lat",
       do_chunks = TRUE,
@@ -66,6 +66,80 @@ grsofun_tidy <- function(settings, ...){
     data.frame(input_path = settings$file_in_elv, msg = "No elv file found.")
   }
 
+  ## Canopy height -----------------------------------------------------------
+  res_canopy <- if (!is.na(settings$file_in_canopy) && file.exists(settings$file_in_canopy)) {
+    map2tidy::map2tidy(
+      nclist = settings$file_in_canopy,
+      varnam = "Band1",
+      lonnam = "lon",
+      latnam = "lat",
+      do_chunks = TRUE,
+      outdir = settings$dir_out_tidy_canopy,
+      fileprefix = "canopy_height",
+      overwrite = settings$overwrite,
+      ncores    = settings$ncores_max,  # parallel::detectCores()
+      ...
+    )
+  } else {
+    data.frame(input_path = settings$file_in_canopy, msg = "No canopy file found.")
+  }
+
+  ## Surface net solar radiation ----------------------------------------------------
+  res_ssr <- if (!is.na(settings$dir_in_ssr) &&
+                 dir.exists(settings$dir_in_ssr)) {
+    ssr_files <- list.files(
+      settings$dir_in_ssr,
+      recursive = TRUE,
+      pattern   = "ERA5Land_UTCDaily\\.tot_ssr\\.[0-9]{4}_halfdeg\\.nc$",
+      full.names = TRUE
+    )
+    stopifnot(length(ssr_files) > 0)
+    map2tidy::map2tidy(
+      nclist     = ssr_files,
+      varnam     = "tot_ssr",
+      lonnam     = "lon",
+      latnam     = "lat",
+      timenam    = "valid_time",
+      do_chunks  = TRUE,
+      outdir     = settings$dir_out_tidy_ssr,
+      fileprefix = "ERA5Land_halfdeg.tot_ssr",
+      overwrite  = settings$overwrite,
+      # filter_lon_between_degrees = c(-1, 1), # TODO: only for development
+      ncores     = settings$ncores_max,
+      ...
+    )
+  } else {
+    data.frame(input_path = settings$dir_in_ssr, msg = "No Surface net solar radiation directory found.")
+  }
+
+  ## Surface net thermal radiation ----------------------------------------------------
+  res_str <- if (!is.na(settings$dir_in_str) &&
+                 dir.exists(settings$dir_in_str)) {
+    str_files <- list.files(
+      settings$dir_in_str,
+      recursive = TRUE,
+      pattern   = "ERA5Land_UTCDaily\\.tot_str\\.[0-9]{4}_halfdeg\\.nc$",
+      full.names = TRUE
+    )
+    stopifnot(length(str_files) > 0)
+    map2tidy::map2tidy(
+      nclist     = str_files,
+      varnam     = "tot_str",
+      lonnam     = "lon",
+      latnam     = "lat",
+      timenam    = "valid_time",
+      do_chunks  = TRUE,
+      outdir     = settings$dir_out_tidy_str,
+      fileprefix = "ERA5Land_halfdeg.tot_str",
+      overwrite  = settings$overwrite,
+      # filter_lon_between_degrees = c(-1, 1), # TODO: only for development
+      ncores     = settings$ncores_max,
+      ...
+    )
+  } else {
+    data.frame(input_path = settings$dir_in_str, msg = "No Surface net thermal radiation directory found.")
+  }
+
   ## Climate -----------------------------------------------------------------
   res_climate_df <-
     if (!is.na(settings$dir_in_climate) && file.exists(settings$dir_in_climate)) {
@@ -75,7 +149,7 @@ grsofun_tidy <- function(settings, ...){
       if (settings$source_climate == "watch-wfdei"){
 
         # data-product specific variable names
-        vars <- c("Tair", "Rainf", "Snowf", "Qair", "SWdown", "PSurf")
+        vars <- c("Tair", "Rainf", "Snowf", "Qair", "SWdown", "PSurf", "Wind")
 
         settings$grid_climate <- list(
           lonnam = "lon",
@@ -101,7 +175,7 @@ grsofun_tidy <- function(settings, ...){
           function(var) map2tidy::map2tidy(
             nclist  = list.files(
               file.path(settings$dir_in_climate, gsub("\\[VAR\\]", var, "[VAR]_daily")),
-              pattern = "daily_.*_2018..\\.nc$", # ".nc",  # XXX try
+              pattern = "*.nc", # ".nc",  # XXX try
               full.names = TRUE
               ),
             varnam  = var,
@@ -164,7 +238,7 @@ grsofun_tidy <- function(settings, ...){
           Your input to 'settings$source_climate' does not (yet) appear to be supported.")
       }
 
-      return(res_climate)
+      # return(res_climate)
     } else {
       data.frame(input_path = settings$dir_in_climate, msg = "No climate file found.")
     }
@@ -182,7 +256,7 @@ grsofun_tidy <- function(settings, ...){
           timenam = "time",
           do_chunks = TRUE,
           outdir = settings$dir_out_tidy_fapar,
-          fileprefix = "MODIS-C006_MOD15A2_LAI_FPAR_zmaw",
+          fileprefix = "MODIS-C061_MOD15A2H_LAI_FPAR_zmaw",
           overwrite = settings$overwrite,
           # filter_lon_between_degrees = c(-1,1), # TODO: only for development
           ncores     = settings$ncores_max,  # parallel::detectCores()
@@ -200,9 +274,12 @@ grsofun_tidy <- function(settings, ...){
     }
 
   return(list(
+    res_ssr        = res_ssr,
+    res_str        = res_str,
     res_landmask   = res_landmask,
     res_whc        = res_whc,
     res_elv        = res_elv,
+    res_canopy     = res_canopy,
     res_climate_df = res_climate_df,
     res_fapar      = res_fapar
   ))
