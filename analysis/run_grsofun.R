@@ -249,10 +249,10 @@ print(settings)
 # Preprocess tidy input data from NetCDF
 # -----------------------------------------------------------
 
-# tictoc::tic("Tidying input")
-# tidy_out <- grsofun_tidy(settings)
-# tictoc::toc()
-# gc()
+tictoc::tic("Tidying input")
+tidy_out <- grsofun_tidy(settings)
+tictoc::toc()
+gc()
 
 # -----------------------------------------------------------
 # Run grsofun model simulation
