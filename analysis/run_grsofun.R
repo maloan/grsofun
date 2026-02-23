@@ -26,6 +26,7 @@ suppressPackageStartupMessages({
   library(tictoc)
   library(terra)
   library(readr)
+  library(ncdf4)
 })
 
 message("Starting program..")
@@ -39,7 +40,7 @@ ncores <- max(as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", 1)) - 1, 1)
 ncores <- min(ncores, 8) # or 4, depending on memory
 
 base_data_path <- "/storage/research/giub_geco/data_2"
-fileprefix = "test_0"   # "PM", "PM-S0" or "PT"
+fileprefix = "PM-S0"   # "PM", "PM-S0" or "PT"
 # -----------------------------------------------------------
 # Model and I/O configuration
 # -----------------------------------------------------------
@@ -77,7 +78,8 @@ settings <- list(
   ),
 
   ### Model output
-  save = list(aet = "mon", le = "mon", gpp = "mon"),
+  save = list(aet = "mon", le = "mon"),
+  # , gpp = "mon"
   overwrite = FALSE,
 
   # Source
@@ -307,9 +309,9 @@ print(settings)
 # gc()
 
 # -----------------------------------------------------------
-# Collect model output data
+# Save model output data
 # -----------------------------------------------------------
 tictoc::tic("Save model output")
-grsofun_save(settings)
+grsofun_save_nc(settings)
 tictoc::toc()
 gc()
