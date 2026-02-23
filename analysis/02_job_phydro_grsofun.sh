@@ -1,6 +1,5 @@
 #!/bin/bash
-#SBATCH --mail-user=ananda.kurth@unibe.ch
-#SBATCH --job-name=PM_grsofun
+#SBATCH --job-name=PM-S0_grsofun
 #SBATCH --output=log/%x_%j.log
 #SBATCH --error=log/%x_%j.err
 #SBATCH --time=02:00:00
@@ -17,24 +16,21 @@ module load R/4.4.2-gfbf-2024a UDUNITS/2.2.28-GCCcore-13.3.0 \
 PROJ/9.4.1-GCCcore-13.3.0 GDAL/3.10.0-foss-2024a CDO/2.4.4-gompi-2024a
 
 ## To change
-PREFIX=PM
+PREFIX=PM-S0
 START=2000
 END=2018
 
-export R_LIBS_USER=/storage/homefs/ak24h624/R/x86_64-pc-linux-gnu-library/4.4
+# export GRSOFUN_DIR="$HOME/grsofun" # grsofun repository needs to be cloned
+export R_LIBS_USER=$HOME/R/x86_64-pc-linux-gnu-library/4.4
 
-# --- new: branch + shared lib config
+# --- rsofun repo (phydro branch) ----------------------------------------------
 export RSOFUN_REPO="geco-bern/rsofun"
 export RSOFUN_REF="phydro"              # branch to install
 export BRANCH_LIB="${R_LIBS_USER}/rsofun_phydro_lib"
 
 mkdir -p "${BRANCH_LIB}"
-# Prepend the branch lib to R_LIBS_USER so R (and worker processes) will search it first
+# Prepend the branch lib to R_LIBS_USER so R will search it first
 export R_LIBS_USER="${BRANCH_LIB}:${R_LIBS_USER}"
-
-# Optionally log which libs we are using
-echo "R_LIBS_USER=${R_LIBS_USER}"
-echo "Installing rsofun ${RSOFUN_REF} to ${BRANCH_LIB} (if missing) ..."
 
 Rscript -e '
 if (!requireNamespace("remotes", quietly = TRUE))
@@ -57,11 +53,11 @@ remotes::install_github(
   force        = TRUE
 )'
 
+# --- Run the script -----------------------------------------------------------
+# Rscript "$GRSOFUN_DIR/analysis/run_grsofun.R" # For remote
+Rscript run_grsofun.R # For within grsofun
 
-# Run the script (will see rsofun from BRANCH_LIB because R_LIBS_USER was prepended)
-Rscript run_grsofun.R
-
-# --- merge yearly NetCDFs to one monthly time series ---
+# --- merge yearly NetCDFs to one monthly time series --------------------------
 OUTDIR=/storage/research/giub_geco/data_2/scratch/akurth/grsofun_output
 NC_DIR="${OUTDIR}/${PREFIX}"
 MERGED="${NC_DIR}/${PREFIX}_monthly_${START}_${END}.nc"

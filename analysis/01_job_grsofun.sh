@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --mail-user=ananda.kurth@unibe.ch
 #SBATCH --job-name=test_0_grsofun
 #SBATCH --output=log/%x_%j.log
 #SBATCH --error=log/%x_%j.err
@@ -21,10 +20,13 @@ PREFIX=test_0
 START=2000
 END=2018
 
-export R_LIBS_USER=/storage/homefs/ak24h624/R/x86_64-pc-linux-gnu-library/4.4
+export GRSOFUN_DIR="$HOME/grsofun" # grsofun repository needs to be cloned
+export R_LIBS_USER=$HOME/R/x86_64-pc-linux-gnu-library/4.4
 
-# Run the script
-Rscript run_grsofun.R
+# --- Run the script -----------------------------------------------------------
+# Rscript "$GRSOFUN_DIR/analysis/run_grsofun.R" # For remote
+Rscript run_grsofun.R # For within grsofun
+
 
 # --- merge yearly NetCDFs to one monthly time series ---
 OUTDIR=/storage/research/giub_geco/data_2/scratch/akurth/grsofun_output
