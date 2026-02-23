@@ -12,18 +12,21 @@
 # -----------------------------------------------------------
 # Global rsofun simulation with grsofun: WATCH-WFDEI + MODIS
 # -----------------------------------------------------------
-library(BayesianTools)
-library(ggplot2)
-library(dplyr)
-library(rnaturalearth)
-library(cowplot)
-library(map2tidy)
-library(purrr)
-library(parallel)
-library(here)
-library(sf)
-library(tictoc)
-library(terra)
+suppressPackageStartupMessages({
+  library(BayesianTools)
+  library(ggplot2)
+  library(dplyr)
+  library(rnaturalearth)
+  library(cowplot)
+  library(map2tidy)
+  library(purrr)
+  library(parallel)
+  library(here)
+  library(sf)
+  library(tictoc)
+  library(terra)
+  library(readr)
+})
 
 message("Starting program..")
 
@@ -298,15 +301,15 @@ print(settings)
 # -----------------------------------------------------------
 # Collect model output data
 # -----------------------------------------------------------
-tictoc::tic("Collect model output")
-grsofun_collect(settings, return_data = FALSE)
-tictoc::toc()
-gc()
+# tictoc::tic("Collect model output")
+# grsofun_collect(settings, return_data = FALSE)
+# tictoc::toc()
+# gc()
 
 # -----------------------------------------------------------
 # Collect model output data
 # -----------------------------------------------------------
 tictoc::tic("Save model output")
-grsofun_save_nc(settings)
+grsofun_save(settings)
 tictoc::toc()
 gc()
