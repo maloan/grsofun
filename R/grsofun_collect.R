@@ -120,11 +120,11 @@ grsofun_collect_byLON <- function(
       dplyr::summarise(dplyr::across(dplyr::all_of(vars), \(x) mean(x, na.rm = TRUE)), .groups = "drop") |>
 
       # add lon and lat to data frame
-      left_join(
+      dplyr::left_join(
         ddf |>
           dplyr::select(sitename, site_info) |>
           tidyr::unnest(site_info) |>
-          dplyr::select(sitename, lon, lat), # dplyr::select(sitename, lon, lat, fland)
+          dplyr::select(sitename, lon, lat, fland), # dplyr::select(sitename, lon, lat, fland)
         by = "sitename"
       )
 
