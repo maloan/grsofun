@@ -78,12 +78,12 @@ settings <- list(
   ),
 
   ### Model output
-  save = list(aet = "mon", le = "mon"),
-  # , gpp = "mon"
+  save = list(aet = "mon", le = "mon", gpp = "mon"),
   overwrite = FALSE,
 
   # Source
-  source_fapar = "modis",
+  # source_fapar = "modis",
+  source_fapar = "fPAR_masked",
   source_climate = "watch-wfdei",
 
   # Path settings
@@ -96,11 +96,18 @@ settings <- list(
   ),
   file_in_co2 = file.path(base_data_path, "global", "co2_annmean_mlo.csv"),
   dir_in_climate = file.path(base_data_path, "wfdei_weedon_2014", "data"),
+  # file_in_fapar = file.path(
+  #   base_data_path,
+  #   "modis_lai_fpar",
+  #   "MODIS-C061_MOD15A2H__LAI_FPAR__LPDAAC__GLOBAL_0.5degree__UHAM-ICDC__2000_2024__MON__fv0.03.nc"
+  # ),
+
   file_in_fapar = file.path(
     base_data_path,
-    "modis_lai_fpar",
-    "MODIS-C061_MOD15A2H__LAI_FPAR__LPDAAC__GLOBAL_0.5degree__UHAM-ICDC__2000_2024__MON__fv0.03.nc"
+    "fPAR_masked",
+    "FPAR_masked_0p25_monthly_1982-2024.nc"
   ),
+
   file_in_whc = file.path(
     base_data_path,
     "scratch",
@@ -129,7 +136,8 @@ settings <- list(
   dir_out_tidy_str = file.path(base_data_path, "ERA5Land", "remap", "tidy"),
   dir_out_tidy_canopy = file.path(base_data_path, "vegheight_lang_2023/tidy"),
   dir_out_tidy_climate = file.path(base_data_path, "watch_wfdei", "tidy"),
-  dir_out_tidy_fapar = file.path(base_data_path, "modis_lai_fpar", "global", "tidy"),
+  # dir_out_tidy_fapar = file.path(base_data_path, "modis_lai_fpar", "global", "tidy"),
+  dir_out_tidy_fapar = file.path(base_data_path, "fPAR_masked", "tidy"),
   dir_out_tidy_whc = file.path(base_data_path, "mct_data", "tidy"),
   dir_out_tidy_landmask = file.path(base_data_path, "watch_wfdei", "tidy"),
   dir_out_tidy_elv = file.path(base_data_path, "watch_wfdei", "tidy"),
