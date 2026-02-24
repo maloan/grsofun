@@ -281,6 +281,21 @@ grsofun_tidy <- function(settings, ...){
           ncores     = settings$ncores_max,  # parallel::detectCores()
           ...
         )
+      } else if(settings$source_fapar == "fPAR_masked") {
+        map2tidy(
+          nclist = settings$file_in_fapar,
+          varnam = "FPAR",
+          lonnam = "lon",
+          latnam = "lat",
+          timenam = "time",
+          do_chunks = TRUE,
+          outdir = settings$dir_out_tidy_fapar,
+          fileprefix = "masked_fpar",
+          overwrite = settings$overwrite,
+          # filter_lon_between_degrees = c(-1,1), # TODO: only for development
+          ncores     = settings$ncores_max,  # parallel::detectCores()
+          ...
+        )
       } else if(settings$source_fapar == "some-other-fapar-source-to-be-defined") {
         # NOTE: add future sources here
       } else {
