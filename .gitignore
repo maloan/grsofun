@@ -38,6 +38,6 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# HPC outputs
+# HPC 
 log/
-
+*.sh
