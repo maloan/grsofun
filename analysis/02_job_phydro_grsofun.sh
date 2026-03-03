@@ -57,21 +57,3 @@ remotes::install_github(
 # Rscript "$GRSOFUN_DIR/analysis/run_grsofun.R" # For remote
 Rscript run_grsofun.R # For within grsofun
 
-# --- merge yearly NetCDFs to one monthly time series --------------------------
-OUTDIR=/storage/research/giub_geco/data_2/scratch/akurth/grsofun_output
-NC_DIR="${OUTDIR}/${PREFIX}"
-MERGED="${NC_DIR}/${PREFIX}_monthly_${START}_${END}.nc"
-
-cd "${NC_DIR}"
-
-files=()
-for y in $(seq ${START} ${END}); do
-  f="${PREFIX}_mon_${y}.nc"
-  [ -f "${f}" ] || { echo "Missing: ${NC_DIR}/${f}" >&2; exit 1; }
-  files+=("${f}")
-done
-
-cdo -O mergetime "${files[@]}" "${MERGED}"
-cdo -s showname "${MERGED}"
-cdo -s ntime "${MERGED}"
-echo "✔ Merge complete: ${MERGED}"

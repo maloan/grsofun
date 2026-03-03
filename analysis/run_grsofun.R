@@ -34,7 +34,6 @@ message("Starting program..")
 # Load all R scripts from the R/ directory
 source_files <- list.files(here::here("R/"), pattern = "*.R$")
 purrr::walk(paste0(here::here("R/"), source_files), source)
-purrr::walk(here::here("analysis/grsofun_save_nc.R"), source)
 
 ncores <- max(as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", 1)) - 1, 1)
 ncores <- min(ncores, 8) # or 4, depending on memory
@@ -82,8 +81,8 @@ settings <- list(
   overwrite = FALSE,
 
   # Source
-  # source_fapar = "modis",
-  source_fapar = "fPAR_masked",
+  source_fapar = "modis",
+ # source_fapar = "fPAR_masked",
   source_climate = "watch-wfdei",
 
   # Path settings
@@ -96,17 +95,17 @@ settings <- list(
   ),
   file_in_co2 = file.path(base_data_path, "global", "co2_annmean_mlo.csv"),
   dir_in_climate = file.path(base_data_path, "wfdei_weedon_2014", "data"),
-  # file_in_fapar = file.path(
-  #   base_data_path,
-  #   "modis_lai_fpar",
-  #   "MODIS-C061_MOD15A2H__LAI_FPAR__LPDAAC__GLOBAL_0.5degree__UHAM-ICDC__2000_2024__MON__fv0.03.nc"
-  # ),
-
   file_in_fapar = file.path(
-    base_data_path,
-    "fPAR_masked",
-    "FPAR_masked_0p25_monthly_1982-2024.nc"
-  ),
+     base_data_path,
+     "modis_lai_fpar",
+     "MODIS-C061_MOD15A2H__LAI_FPAR__LPDAAC__GLOBAL_0.5degree__UHAM-ICDC__2000_2024__MON__fv0.03.nc"
+   ),
+
+  #file_in_fapar = file.path(
+  #  base_data_path,
+  #  "fPAR_masked",
+  #  "FPAR_masked_0p25_monthly_1982-2024.nc"
+  #),
 
   file_in_whc = file.path(
     base_data_path,
@@ -136,8 +135,8 @@ settings <- list(
   dir_out_tidy_str = file.path(base_data_path, "ERA5Land", "remap", "tidy"),
   dir_out_tidy_canopy = file.path(base_data_path, "vegheight_lang_2023/tidy"),
   dir_out_tidy_climate = file.path(base_data_path, "watch_wfdei", "tidy"),
-  # dir_out_tidy_fapar = file.path(base_data_path, "modis_lai_fpar", "global", "tidy"),
-  dir_out_tidy_fapar = file.path(base_data_path, "fPAR_masked", "tidy"),
+  dir_out_tidy_fapar = file.path(base_data_path, "modis_lai_fpar", "global", "tidy"),
+  #dir_out_tidy_fapar = file.path(base_data_path, "fPAR_masked", "tidy"),
   dir_out_tidy_whc = file.path(base_data_path, "mct_data", "tidy"),
   dir_out_tidy_landmask = file.path(base_data_path, "watch_wfdei", "tidy"),
   dir_out_tidy_elv = file.path(base_data_path, "watch_wfdei", "tidy"),
@@ -294,32 +293,31 @@ print(settings)
 # -----------------------------------------------------------
 # Preprocess tidy input data from NetCDF
 # -----------------------------------------------------------
-
-# tictoc::tic("Tidying input")
-# tidy_out <- grsofun_tidy(settings)
-# tictoc::toc()
-# gc()
+#tictoc::tic("Tidying input")
+#tidy_out <- grsofun_tidy(settings)
+#tictoc::toc()
+#gc()
 
 # -----------------------------------------------------------
 # Run grsofun model simulation
 # -----------------------------------------------------------
-# tictoc::tic("Run model")
-# error <- grsofun_run(par, settings)
-# tictoc::toc()
-# gc()
+#tictoc::tic("Run model")
+#error <- grsofun_run(par, settings)
+#tictoc::toc()
+#gc()
 
 # -----------------------------------------------------------
 # Collect model output data
 # -----------------------------------------------------------
-# tictoc::tic("Collect model output")
-# grsofun_collect(settings, return_data = FALSE)
-# tictoc::toc()
-# gc()
+tictoc::tic("Collect model output")
+df <- grsofun_collect(settings, return_data = TRUE)
+tictoc::toc()
+gc()
 
 # -----------------------------------------------------------
 # Save model output data
 # -----------------------------------------------------------
 tictoc::tic("Save model output")
-grsofun_save_nc(settings)
+error <- grsofun_save_nc(settings, df)
 tictoc::toc()
 gc()

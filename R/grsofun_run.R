@@ -255,8 +255,12 @@ grsofun_run_byLON <- function(LON_string, par, settings){
         fil_str <- file.path(settings$dir_out_tidy_str,
                              paste0("ERA5Land_halfdeg.tot_str", LON_string, ".rds"))
 
-        if (!file.exists(fil_ssr)) stop("Missing SSR file: ", fil_ssr)
-        if (!file.exists(fil_str)) stop("Missing STR file: ", fil_str)
+        if (!file.exists(fil_ssr)) {
+          stop("Missing SSR file: ", fil_ssr)
+          }
+        if (!file.exists(fil_str)) {
+          stop("Missing STR file: ", fil_str)
+          }
 
         df_str <- readr::read_rds(fil_str) |>
           tidyr::unnest(data) |>
@@ -344,12 +348,20 @@ grsofun_run_byLON <- function(LON_string, par, settings){
         rm(df_co2, df_netrad); gc()
       }
 
-      if (settings$source_fapar == "modis"){
 
-        # read monthly fAPAR data
-        filnam <- paste0(settings$dir_out_tidy_fapar, "/MODIS-C061_MOD15A2H_LAI_FPAR_zmaw", LON_string, ".rds")
-        if (!file.exists(filnam)){
-          stop(paste("File does not exist: ", filnam))
+      # fAPAR
+      if (settings$source_fapar %in% c("modis", "fPAR_masked")) {
+
+        filnam <- file.path(
+          settings$dir_out_tidy_fapar,
+          switch(settings$source_fapar,
+                 modis       = paste0("MODIS-C061_MOD15A2H_LAI_FPAR_zmaw", LON_string, ".rds"),
+                 fPAR_masked = paste0("masked_fpar_", LON_string, ".rds")
+          )
+        )
+
+        if (!file.exists(filnam)) {
+          stop("File does not exist: ", filnam)
         }
 
         df_fapar_mon <- readr::read_rds(filnam)
