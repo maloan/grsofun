@@ -32,8 +32,8 @@ suppressPackageStartupMessages({
 message("Starting program..")
 
 # Load all R scripts from the R/ directory
-source_files <- list.files(here::here("R/"), pattern = "*.R$")
-purrr::walk(paste0(here::here("R/"), source_files), source)
+source_files <- list.files(here::here("R/"), pattern = "\\.R$")
+purrr::walk(file.path(here::here("R"), source_files), source)
 
 ncores <- max(as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", 1)) - 1, 1)
 ncores <- min(ncores, 8) # or 4, depending on memory
