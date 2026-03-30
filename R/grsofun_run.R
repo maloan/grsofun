@@ -58,7 +58,7 @@ grsofun_run <- function(par, settings){
       }
 
       cl <- multidplyr::new_cluster(ncores) |>
-        multidplyr::cluster_library(c("map2tidy","dplyr","purrr","tidyr","readr","grsofun"))
+        multidplyr::cluster_library(c("map2tidy","dplyr","purrr","tidyr","readr"))
 
       cluster_export_functions(cl)
 
@@ -457,6 +457,9 @@ grsofun_run_byLON <- function(LON_string, par, settings){
             dplyr::mutate(fapar = ifelse(is.na(fapar), 0, fapar)) |>
             dplyr::group_by(lon, lat) |>
             tidyr::nest()
+
+          # Apply factorial forcing manipulation if requested
+          df_forcing <- apply_factorial_forcing(df_forcing, settings)
         } else {
           # fapar not available - set to zero
           df_forcing <- df_climate |>
