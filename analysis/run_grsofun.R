@@ -32,14 +32,14 @@ suppressPackageStartupMessages({
 message("Starting program..")
 
 # Load all R scripts from the R/ directory
-source_files <- list.files(here::here("R/"), pattern = "*.R$")
-purrr::walk(paste0(here::here("R/"), source_files), source)
+source_files <- list.files(here::here("R/"), pattern = "\\.R$")
+purrr::walk(file.path(here::here("R"), source_files), source)
 
 ncores <- max(as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", 1)) - 1, 1)
 ncores <- min(ncores, 8) # or 4, depending on memory
 
 base_data_path <- "/storage/research/giub_geco/data_2"
-fileprefix = "PM-S0"   # "PM", "PM-S0" or "PT"
+fileprefix <- "PM-S0"
 source_fapar <- "modis"         # or "fpar_masked"
 # -----------------------------------------------------------
 # Model and I/O configuration
@@ -162,49 +162,8 @@ settings <- list(
 # Model parameters
 # -----------------------------------------------------------
 
+# PM-S0 parameter set
 par <- list(
-  kphio              = 5.000000e-02,
-  # chosen to be too high for demonstration
-  kphio_par_a        = -2.289344e-03,
-  kphio_par_b        = 1.525094e+01,
-  soilm_thetastar    = 1.577507e+02,
-  soilm_betao        = 1.169702e-04,
-  beta_unitcostratio = 146.0,
-  rd_to_vcmax        = 0.014,
-  tau_acclim         = 20.0,
-  kc_jmax            = 0.41
-)
-
-## Phydro parameters
-par_PT <- list(
-  kphio              = 0.04608,
-  kphio_par_a        = -0.00100,
-  kphio_par_b        = 23.71806,
-  soilm_thetastar    = 5.42797,
-  err_gpp            = 2.27776,
-  err_le             = 44.72722,
-  soilm_betao        = 1.169702e-04,
-  beta_unitcostratio = 146.0,
-  rd_to_vcmax        = 0.014,
-  tau_acclim         = 20.0,
-  kc_jmax            = 0.41
-)
-
-par_PM <- list(
-  kphio              = 0.04727,
-  kphio_par_a        = -0.00100,
-  kphio_par_b        = 24.02663,
-  soilm_thetastar    = 145.72290,
-  err_gpp            = 2.31415,
-  err_le             = 24.76610,
-  gw_calib           = 0.67554,
-  beta_unitcostratio = 146.0,
-  rd_to_vcmax        = 0.014,
-  tau_acclim         = 20.0,
-  kc_jmax            = 0.41
-)
-
-par_PM_S0 <- list(
   kphio              = 0.04756,
   kphio_par_a        = -0.00099,
   kphio_par_b        = 24.06332,
@@ -218,75 +177,11 @@ par_PM_S0 <- list(
   kc_jmax            = 0.41
 )
 
-
-# -----------------------------------------------------------
-# Model settings for phydro runs
-# -----------------------------------------------------------
-
-if (exists("settings") && is.list(settings)) {
-  if (settings$fileprefix == "PT") {
-    # WHC: 2 m map
-    settings$file_in_whc <- file.path(base_data_path, "whc_2m", "remap", "whc_2m_0.5.nc")
-    settings$dir_out_tidy_whc <- file.path(base_data_path, "whc_2m", "remap", "tidy")
-
-    # simulation flags
-    settings$params_siml <- list(use_gs = FALSE,
-                                 use_pml = FALSE,
-                                 use_phydro = FALSE)
-
-    # output dirs
-    dir_out <- settings$dir_out
-    dir_out_nc <- settings$dir_out_nc
-
-    # parameters for this run
-    par <- par_PT
-  } else if (settings$fileprefix == "PM") {
-    settings$file_in_whc <- file.path(base_data_path, "whc_2m", "remap", "whc_2m_0.5.nc")
-    settings$dir_out_tidy_whc <- file.path(base_data_path, "whc_2m", "remap", "tidy")
-
-    settings$params_siml <- list(use_gs = TRUE,
-                                 use_pml = TRUE,
-                                 use_phydro = FALSE)
-
-    dir_out <- settings$dir_out
-    dir_out_nc <- settings$dir_out_nc
-
-    par <- par_PM
-  } else if (settings$fileprefix == "PM-S0") {
-    # Stocker WHC map
-    settings$file_in_whc <- file.path(
-      base_data_path,
-      "fbernhard",
-      "whc_stocker_2023",
-      "data",
-      "remap",
-      "cwdx80_forcing_0.5degbil.nc"
-    )
-    settings$dir_out_tidy_whc <- file.path(base_data_path, "mct_data", "tidy")
-    settings$params_siml <- list(use_gs = TRUE,
-                                 use_pml = TRUE,
-                                 use_phydro = FALSE)
-
-    dir_out <- settings$dir_out
-    dir_out_nc <- settings$dir_out_nc
-
-    par <- par_PM_S0
-  } else {
-    message("settings$fileprefix not one of PT/PM/PM-S0 — leaving defaults in place.")
-    # ensure plain dir_out exists for legacy code:
-    dir_out <- settings$dir_out
-    dir_out_nc <- settings$dir_out_nc
-  }
-
-  # ensure params_siml keys exist and are logical
-  settings$params_siml <- modifyList(list(
-    use_gs = FALSE,
-    use_pml = FALSE,
-    use_phydro = FALSE
-  ),
-  settings$params_siml)
-  settings$params_siml <- lapply(settings$params_siml, as.logical)
-}
+settings$params_siml <- list(
+  use_gs = TRUE,
+  use_pml = TRUE,
+  use_phydro = FALSE
+)
 
 print(settings)
 
