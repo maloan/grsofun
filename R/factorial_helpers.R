@@ -27,8 +27,9 @@ build_fixed_cycle <- function(df, varname) {
   clim <- tapply(
     X = df[[varname]][keep],
     INDEX = doy[keep],
-    FUN = function(x)
+    FUN = function(x) {
       mean(x, na.rm = TRUE)
+    }
   )
 
   out <- rep(NA_real_, nrow(df))
