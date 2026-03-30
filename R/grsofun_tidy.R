@@ -264,7 +264,7 @@ grsofun_tidy <- function(settings, ...){
   ## fAPAR ---------------------------------------------------------------------
   res_fapar <-
     if (!is.na(settings$file_in_fapar) && file.exists(settings$file_in_fapar)) {
-
+      # HARDCODED CODE FOR DIFFERENT FAPAR INPUT FILES:
       if (settings$source_fapar == "modis"){
         map2tidy(
           nclist = settings$file_in_fapar,
@@ -275,6 +275,7 @@ grsofun_tidy <- function(settings, ...){
           do_chunks = TRUE,
           outdir = settings$dir_out_tidy_fapar,
           fileprefix = "MODIS-C061_MOD15A2H_LAI_FPAR_zmaw",
+          overwrite = settings$overwrite,
           # filter_lon_between_degrees = c(-1,1), # TODO: only for development
           ncores     = settings$ncores_max,  # parallel::detectCores()
           ...
@@ -296,7 +297,6 @@ grsofun_tidy <- function(settings, ...){
         )
       } else if(settings$source_fapar == "some-other-fapar-source-to-be-defined") {
         # NOTE: add future sources here
-
       } else {
         stop("
         FAPAR inputs need case-by-case modification of the code in grsofun.
