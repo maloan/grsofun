@@ -95,3 +95,4 @@ apply_factorial_forcing <- function(df_forcing, settings) {
 
   df_forcing |>
     dplyr::mutate(data = purrr::map(data, freeze_driver, driver = driver))
+}
