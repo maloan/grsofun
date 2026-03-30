@@ -49,13 +49,12 @@ grsofun_run <- function(par, settings){
       # parallelize job
       # set up the cluster, sending required objects to each core
       cluster_export_functions <- function(cl){
-        multidplyr::cluster_assign(
-          cl,
-          grsofun_run_byLON         = grsofun_run_byLON,
-          read_forcing_byvar_byLON  = read_forcing_byvar_byLON,
-          apply_factorial_forcing   = apply_factorial_forcing,
-          par                       = par,
-          settings                  = settings
+        multidplyr::cluster_assign(cl,
+                                   grsofun_run_byLON        = grsofun_run_byLON,
+                                   read_forcing_byvar_byLON = read_forcing_byvar_byLON,
+                                   apply_factorial_forcing  = apply_factorial_forcing,
+                                   par                      = par,
+                                   settings                 = settings
         )
       }
 
@@ -259,10 +258,10 @@ grsofun_run_byLON <- function(LON_string, par, settings){
 
         if (!file.exists(fil_ssr)) {
           stop("Missing SSR file: ", fil_ssr)
-          }
+        }
         if (!file.exists(fil_str)) {
           stop("Missing STR file: ", fil_str)
-          }
+        }
 
         df_str <- readr::read_rds(fil_str) |>
           tidyr::unnest(data) |>
@@ -356,11 +355,11 @@ grsofun_run_byLON <- function(LON_string, par, settings){
         prefix <- if (settings$source_fapar == "modis") {
           "MODIS-C061_MOD15A2H_LAI_FPAR_zmaw"
         } else {
-            "masked_fpar"
-          }
+          "masked_fpar"
+        }
 
         filnam <- file.path(settings$dir_out_tidy_fapar,
-                                  paste0(prefix, LON_string, ".rds"))
+                            paste0(prefix, LON_string, ".rds"))
 
         if (!file.exists(filnam)){
           stop(paste("File does not exist: ", filnam))
@@ -371,7 +370,7 @@ grsofun_run_byLON <- function(LON_string, par, settings){
         # check if something was read
         avl_fapar <- is.data.frame(df_fapar_mon) && nrow(df_fapar_mon) > 0 && "data" %in% names(df_fapar_mon)
 
-        if (avl_fapar) {
+        if (avl_fapar){
 
           # map2tidy outputs 'datetime', but pmodel requires 'date'
           df_fapar_mon <- df_fapar_mon |>
@@ -402,7 +401,7 @@ grsofun_run_byLON <- function(LON_string, par, settings){
           # linearly interpolate monthly fAPAR values to daily
           dates <- df_fapar_mon$data[[1]]$date
           year_start <- min(lubridate::year(dates))
-          year_end   <- max(lubridate::year(dates))
+          year_end  <- max(lubridate::year(dates))
 
           # create a data frame that spans all dates between start and end of simulation
           # consider only complete years
@@ -453,7 +452,7 @@ grsofun_run_byLON <- function(LON_string, par, settings){
             tidyr::unnest(data) |>
             dplyr::left_join(
               (df_fapar |>
-                tidyr::unnest(data)),
+                 tidyr::unnest(data)),
               by = c("lon", "lat", "date")
             ) |>
             dplyr::mutate(fapar = ifelse(is.na(fapar), 0, fapar)) |>
