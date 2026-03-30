@@ -1,18 +1,15 @@
 #' Build a Fixed Day-of-Year Climatology
 #'
-#' Builds a mean annual cycle for one variable from the first `n_years` present
+#' Builds a mean annual cycle for one variable from the first 5 years present
 #' in the input and maps that cycle back to the full time series by day of year.
 #'
 #' @param df A data frame for one site/grid cell containing a `date` column and
 #'   the variable to be frozen.
 #' @param varname Character string giving the column name of the variable to
 #'   freeze.
-#' @param n_years Integer number of initial years used to build the reference
-#'   climatology. Defaults to `5`.
-#'
 #' @return A numeric vector with length `nrow(df)` containing the fixed
 #'   day-of-year climatology.
-build_fixed_cycle <- function(df, varname, n_years = 5) {
+build_fixed_cycle <- function(df, varname) {
   stopifnot("date" %in% names(df))
   stopifnot(varname %in% names(df))
 
@@ -21,7 +18,7 @@ build_fixed_cycle <- function(df, varname, n_years = 5) {
   }
 
   year0 <- min(lubridate::year(df$date), na.rm = TRUE)
-  years_keep <- seq(year0, length.out = n_years)
+  years_keep <- seq(year0, length.out = 5)
 
   year <- lubridate::year(df$date)
   doy <- lubridate::yday(df$date)
@@ -43,17 +40,15 @@ build_fixed_cycle <- function(df, varname, n_years = 5) {
 #' Freeze One Forcing Driver
 #'
 #' Replaces one forcing variable with a repeated day-of-year climatology built
-#' from the first `n_years` of the input time series.
+#' from the first 5 years of the input time series.
 #'
 #' @param df A forcing data frame for one site/grid cell.
 #' @param driver Character string selecting the driver to freeze. Must be one of
 #'   `"co2"`, `"precip"`, `"vpd"`, or `"fapar"`.
-#' @param n_years Integer number of initial years used to build the reference
-#'   climatology. Defaults to `5`.
 #'
 #' @return The input data frame with the selected forcing variable replaced by
 #'   its fixed climatology.
-freeze_driver <- function(df, driver, n_years = 5) {
+freeze_driver <- function(df, driver) {
   var_lookup <- c(
     co2    = "co2",
     precip = "rain",
@@ -67,7 +62,7 @@ freeze_driver <- function(df, driver, n_years = 5) {
     stop("Unknown driver: ", driver)
   }
 
-  df[[varname]] <- build_fixed_cycle(df, varname = varname, n_years = n_years)
+  df[[varname]] <- build_fixed_cycle(df, varname = varname)
 
   df
 }
@@ -84,8 +79,6 @@ freeze_driver <- function(df, driver, n_years = 5) {
 #'
 #' @param df_forcing A nested forcing data frame containing a `data` list-column
 #'   with one forcing table per site/grid cell.
-#' @param settings A settings list containing a `factorial` sub-list with fields
-#'   `enabled`, `driver`, and optional `n_years`.
 #'
 #' @return The modified nested forcing data frame.
 apply_factorial_forcing <- function(df_forcing, settings) {
@@ -99,11 +92,6 @@ apply_factorial_forcing <- function(df_forcing, settings) {
   }
 
   driver <- factorial$driver
-  n_years <- if (is.null(factorial$n_years))
-    5
-  else
-    factorial$n_years
 
   df_forcing |>
-    dplyr::mutate(data = purrr::map(data, freeze_driver, driver = driver, n_years = n_years))
-}
+    dplyr::mutate(data = purrr::map(data, freeze_driver, driver = driver))
