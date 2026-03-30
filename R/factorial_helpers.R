@@ -86,9 +86,9 @@ apply_factorial_forcing <- function(df_forcing, settings) {
   factorial <- settings$factorial
 
   if (is.null(factorial) ||
-      !isTRUE(factorial$enabled) ||
-      is.null(factorial$driver) ||
-      factorial$driver == "none") {
+        !isTRUE(factorial$enabled) ||
+        is.null(factorial$driver) ||
+        factorial$driver == "none") {
     return(df_forcing)
   }
 
