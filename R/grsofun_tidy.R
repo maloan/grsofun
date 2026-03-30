@@ -208,7 +208,7 @@ grsofun_tidy <- function(settings, ...){
             # filter_lon_between_degrees = c(-1, 1), # TODO: only for development
             ncores     = settings$ncores_max,  # parallel::detectCores()
             ...
-            )
+          )
         )
 
         res_climate <- dplyr::bind_rows(res_climate_list)
@@ -264,44 +264,46 @@ grsofun_tidy <- function(settings, ...){
   ## fAPAR ---------------------------------------------------------------------
   res_fapar <-
     if (!is.na(settings$file_in_fapar) && file.exists(settings$file_in_fapar)) {
-      # HARDCODED CODE FOR DIFFERENT FAPAR INPUT FILES:
+
       if (settings$source_fapar == "modis"){
         map2tidy(
-          nclist = settings$file_in_fapar,
-          varnam = "fpar",
-          lonnam = "lon",
-          latnam = "lat",
-          timenam = "time",
+          nclist    = settings$file_in_fapar,
+          varnam    = "fpar",
+          lonnam    = "lon",
+          latnam    = "lat",
+          timenam   = "time",
           do_chunks = TRUE,
-          outdir = settings$dir_out_tidy_fapar,
+          outdir    = settings$dir_out_tidy_fapar,
           fileprefix = "MODIS-C061_MOD15A2H_LAI_FPAR_zmaw",
           overwrite = settings$overwrite,
-          # filter_lon_between_degrees = c(-1,1), # TODO: only for development
-          ncores     = settings$ncores_max,  # parallel::detectCores()
+          ncores    = settings$ncores_max,
           ...
         )
-      } else if(settings$source_fapar == "fPAR_masked") {
+
+      } else if (settings$source_fapar == "fpar_masked"){
         map2tidy(
-          nclist = settings$file_in_fapar,
-          varnam = "fpar",
-          lonnam = "lon",
-          latnam = "lat",
-          timenam = "time",
+          nclist    = settings$file_in_fapar,
+          varnam    = "fpar",
+          lonnam    = "lon",
+          latnam    = "lat",
+          timenam   = "time",
           do_chunks = TRUE,
-          outdir = settings$dir_out_tidy_fapar,
-          fileprefix = "masked_fpar",
+          outdir    = settings$dir_out_tidy_fapar,
+          fileprefix = "fpar_masked",
           overwrite = settings$overwrite,
-          # filter_lon_between_degrees = c(-1,1), # TODO: only for development
-          ncores     = settings$ncores_max,  # parallel::detectCores()
+          ncores    = settings$ncores_max,
           ...
         )
-      } else if(settings$source_fapar == "some-other-fapar-source-to-be-defined") {
+
+      } else if (settings$source_fapar == "some-other-fapar-source-to-be-defined") {
         # NOTE: add future sources here
+
       } else {
         stop("
-        FAPAR inputs need case-by-case modification of the code in grsofun.
-        Your input to 'settings$source_fapar' does not (yet) appear to be supported.")
+      FAPAR inputs need case-by-case modification of the code in grsofun.
+      Your input to 'settings$source_fapar' does not (yet) appear to be supported.")
       }
+
     } else {
       data.frame(input_path = settings$file_in_fapar, msg = "No fapar file found.")
     }
