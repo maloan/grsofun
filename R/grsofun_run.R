@@ -49,11 +49,13 @@ grsofun_run <- function(par, settings){
       # parallelize job
       # set up the cluster, sending required objects to each core
       cluster_export_functions <- function(cl){
-        multidplyr::cluster_assign(cl,
-                                   grsofun_run_byLON        = grsofun_run_byLON,
-                                   read_forcing_byvar_byLON = read_forcing_byvar_byLON,
-                                   par                      = par,
-                                   settings                 = settings
+        multidplyr::cluster_assign(
+          cl,
+          grsofun_run_byLON         = grsofun_run_byLON,
+          read_forcing_byvar_byLON  = read_forcing_byvar_byLON,
+          apply_factorial_forcing   = apply_factorial_forcing,
+          par                       = par,
+          settings                  = settings
         )
       }
 
