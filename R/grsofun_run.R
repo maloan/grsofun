@@ -372,9 +372,12 @@ grsofun_run_byLON <- function(LON_string, par, settings){
 
         if (avl_fapar){
 
-          # map2tidy outputs 'datetime', but pmodel requires 'date'
           df_fapar_mon <- df_fapar_mon |>
+
+            # map2tidy outputs 'datetime', but pmodel requires 'date'
             dplyr::mutate(data = purrr::map(data, ~dplyr::rename(., date = datetime))) |>
+
+            # parse datetimes from string (output of map2tidy) to datetimes
             dplyr::mutate(data = purrr::map(data, ~dplyr::mutate(., date = lubridate::ymd(date))))
 
           # source-specific cleaning/scaling of fpar to fraction 0..1
@@ -401,7 +404,7 @@ grsofun_run_byLON <- function(LON_string, par, settings){
           # linearly interpolate monthly fAPAR values to daily
           dates <- df_fapar_mon$data[[1]]$date
           year_start <- min(lubridate::year(dates))
-          year_end  <- max(lubridate::year(dates))
+          year_end <- max(lubridate::year(dates))
 
           # create a data frame that spans all dates between start and end of simulation
           # consider only complete years
