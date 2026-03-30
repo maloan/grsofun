@@ -348,45 +348,59 @@ grsofun_run_byLON <- function(LON_string, par, settings){
         rm(df_co2, df_netrad); gc()
       }
 
+      if (settings$source_fapar %in% c("modis", "fpar_masked")) {
 
-      # fAPAR
-      if (settings$source_fapar %in% c("modis", "fPAR_masked")) {
+        # read monthly fAPAR data
+        prefix <- if (settings$source_fapar == "modis") {
+          "MODIS-C061_MOD15A2H_LAI_FPAR_zmaw"
+        } else {
+            "masked_fpar"
+          }
 
-        filnam <- file.path(
-          settings$dir_out_tidy_fapar,
-          switch(settings$source_fapar,
-                 modis       = paste0("MODIS-C061_MOD15A2H_LAI_FPAR_zmaw", LON_string, ".rds"),
-                 fPAR_masked = paste0("masked_fpar_", LON_string, ".rds")
-          )
-        )
+        filnam <- file.path(settings$dir_out_tidy_fapar,
+                                  paste0(prefix, LON_string, ".rds"))
 
-        if (!file.exists(filnam)) {
-          stop("File does not exist: ", filnam)
+        if (!file.exists(filnam)){
+          stop(paste("File does not exist: ", filnam))
         }
 
         df_fapar_mon <- readr::read_rds(filnam)
 
         # check if something was read
-        if ("data.frame" %in% class(df_fapar_mon) && nrow(df_fapar_mon) > 0){
-          avl_fapar <- TRUE
-        } else {
-          avl_fapar <- FALSE
-        }
+        avl_fapar <- is.data.frame(df_fapar_mon) && nrow(df_fapar_mon) > 0 && "data" %in% names(df_fapar_mon)
 
-        if (avl_fapar){
+        if (avl_fapar) {
 
+          # map2tidy outputs 'datetime', but pmodel requires 'date'
           df_fapar_mon <- df_fapar_mon |>
-
-            # map2tidy outputs 'datetime', but pmodel requires 'date'
             dplyr::mutate(data = purrr::map(data, ~dplyr::rename(., date = datetime))) |>
-
-            # parse datetimes from string (output of map2tidy) to datetimes
             dplyr::mutate(data = purrr::map(data, ~dplyr::mutate(., date = lubridate::ymd(date))))
+
+          # source-specific cleaning/scaling of fpar to fraction 0..1
+          df_fapar_mon <- df_fapar_mon |>
+            dplyr::mutate(data = purrr::map(data, function(d) {
+
+              d <- dplyr::mutate(d, fpar = as.numeric(fpar))
+
+              if (settings$source_fapar == "modis") {
+                d <- dplyr::mutate(
+                  d,
+                  fpar = dplyr::na_if(fpar, 255),
+                  fpar = fpar / 100
+                )
+              } else {
+                d <- dplyr::mutate(
+                  d,
+                  fpar = dplyr::na_if(fpar, -9999)
+                )
+              }
+              dplyr::mutate(d, fpar = pmin(pmax(fpar, 0), 1))
+            }))
 
           # linearly interpolate monthly fAPAR values to daily
           dates <- df_fapar_mon$data[[1]]$date
           year_start <- min(lubridate::year(dates))
-          year_end <- max(lubridate::year(dates))
+          year_end   <- max(lubridate::year(dates))
 
           # create a data frame that spans all dates between start and end of simulation
           # consider only complete years
